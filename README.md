@@ -11,6 +11,10 @@
 DNS/IP 身份，并沿链累计中间 CA 的名称约束（excluded 优先、permitted 取交集）。
 以及 **OCSP 装订响应离线预检**：不上网、不连响应器，直接校验端点将装订的
 OCSP 响应是否由签发者（或其授权响应证书）签名、状态为 good 且在有效期内。
+还有**证书变体选择**：给定每个端点最多 12 条候选指纹链与异构客户端各自的
+信任根、可接受叶公钥类型和签名算法 OID，为每个端点求出**覆盖全部必连
+客户端关系的最小变体部署集合**（全局最优，非逐客户端贪心），并在无解时
+按客户端、端点稳定列出每条候选链不兼容的原因。
 
 ## 一键启动
 
@@ -284,6 +288,111 @@ curl -s http://localhost:8080/deployments/ocsp-precheck \
 可用 `examples/gen_ocsp_precheck_example.py` 重新生成（响应窗口
 2024–2035、`check_time` 固定为 2030-01-01，重新生成后多年内保持
 `eligible: true`）。
+
+### `POST /deployments/variants` — 异构客户端最小证书变体选择
+
+端点面对**异构客户端**（不同 TLS 栈：信任不同根、只接受某些叶公钥类型、
+只接受某些证书签名算法）时，可能要同时部署多条证书链（变体）。本接口为
+每个端点选出**必须部署的最少变体集合**，使每条「必须连通」的 client →
+endpoint 关系至少被集合中的一条链覆盖。请求包含一份 PEM 证书包（与
+`/scenarios/normalize` 相同的解析与 DER 指纹去重规则）、每端点最多
+**12** 条候选 leaf-first 指纹链、每个客户端的信任根/密码学策略，以及必连
+关系：
+
+```bash
+curl -s http://localhost:8080/deployments/variants \
+  -H 'Content-Type: application/json' \
+  --data @examples/variant_request.json
+```
+
+请求字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `pem_certificates` | 与 `/scenarios/normalize` 相同的 PEM 包 |
+| `clients[]` | `client_id` + `trust_roots`（该客户端信任的自签名根指纹）+ `acceptable_leaf_key_types`（`rsa` / `ec` / `dsa` / `ed25519` / `ed448`）+ `acceptable_signature_oid`（可接受的**证书签名算法**点分 OID，如 PKCS#1 v1.5 SHA-256 为 `1.2.840.113549.1.1.11`、RSA-PSS 为 `1.2.840.113549.1.1.10`、ECDSA-SHA256 为 `1.2.840.10045.4.3.2`、Ed25519 为 `1.3.101.112`） |
+| `endpoints[].candidate_chains` | 每端点 1..12 条候选链，每条均 leaf-first、末位为自签名根；完全相同的链折叠为同一个变体 |
+| `relationships[]` | 必须连通的 `{client_id, endpoint_id}` 对，不得重复 |
+
+一条候选链**覆盖**某个 (client, endpoint) 关系，当且仅当**同时**满足
+（复用归一化接口的逐级签名验证，绝不只比对 subject/issuer）：
+
+1. **链逐级验签通过**：链中每张证书的签名都能用下一张证书的公钥验证
+   （支持 RSA PKCS#1 v1.5、RSA-PSS、ECDSA、DSA、Ed25519/Ed448），否则记
+   `chain_signature_invalid`；
+2. **末端受客户端信任**：链末位指纹属于该客户端的 `trust_roots`，否则记
+   `root_untrusted`；
+3. **叶公钥类型匹配**：叶证书公钥属于客户端可接受类型，否则记
+   `leaf_key_type_incompatible`；
+4. **签名算法被接受**：除信任根外**每张**证书的签名算法 OID 都在客户端
+   接受列表内（信任根自身的签名算法不做策略检查，与 TLS 验证方对锚证书
+   的处理一致），否则记 `signature_algorithm_incompatible`。
+
+四类检查互相独立，一条链同时违反多条时全部列出。
+
+**优化是全局精确的**：每个端点的「最少变体覆盖全部必连关系」是最小集合
+覆盖问题；由于每端点至多 12 条候选链，接口通过**穷举所有链子集**（至多
+4096 个）按集合大小递增求全局最优——**不会用逐客户端贪心冒充最优**
+（贪心可能多部署本可省去的变体）。多解时把集合内各条**完整指纹链排序**
+后取字典序最小的集合，因此结果与输入顺序无关。成功返回 `200`，
+`selections` 按 `endpoint_id` 排序、集合内变体按链字典序排列并带
+`variant_index`；`assignments` 把每条关系映射到所选集合中**排序最先的
+兼容变体**（按 `(client_id, endpoint_id)` 排序）：
+
+```json
+{
+  "status": "ok",
+  "selections": [
+    {"endpoint_id": "api.example.com", "variant_index": 0,
+     "chain": ["3b8c4cb3...", "6196de6a..."]},
+    {"endpoint_id": "api.example.com", "variant_index": 1,
+     "chain": ["4734e0f9...", "0326d8ea..."]}
+  ],
+  "assignments": [
+    {"client_id": "api-gateway", "endpoint_id": "api.example.com",
+     "variant_index": 0, "chain": ["3b8c4cb3...", "6196de6a..."]},
+    {"client_id": "legacy-java-8", "endpoint_id": "api.example.com",
+     "variant_index": 1, "chain": ["4734e0f9...", "0326d8ea..."]},
+    {"client_id": "modern-go", "endpoint_id": "api.example.com",
+     "variant_index": 0, "chain": ["3b8c4cb3...", "6196de6a..."]}
+  ]
+}
+```
+
+**任一关系无法覆盖时返回 `409`**（`reason: uncoverable_relationship`），
+`incompatibilities` 按 `(client_id, endpoint_id, chain, reasons)` 稳定列出
+每个无法覆盖的关系上每条候选链的全部不兼容原因，并附叶证书实际公钥类型
+`leaf_key_type`、链上除根外各证书的签名 OID `signature_oids` 以及该客户端
+的 `trusted_roots` 便于诊断：
+
+```json
+{
+  "status": "conflict",
+  "reason": "uncoverable_relationship",
+  "message": "one or more required client -> endpoint relationships cannot be covered ...",
+  "incompatibilities": [
+    {"client_id": "legacy-java-8", "endpoint_id": "api.example.com",
+     "chain": ["e5b681a1...", "d8e62e66..."],
+     "reasons": ["root_untrusted", "leaf_key_type_incompatible",
+                 "signature_algorithm_incompatible"],
+     "leaf_key_type": "ec",
+     "signature_oids": ["1.2.840.10045.4.3.2"],
+     "trusted_roots": ["d8e62e66..."]}
+  ]
+}
+```
+
+请求级错误返回 `422`，`detail` 中给出机器可读 `error`、`message` 与逐条
+诊断：`invalid_pem`（附元素下标）、`invalid_fingerprint` /
+`unknown_fingerprint`（指纹位置在 `referred_by` 中给出，如
+`clients['c'].trust_roots` 或 `endpoints['e'].candidate_chains[0][1]`）、
+`invalid_oid`（`oid_issues` 定位到具体客户端与下标）、`invalid_chain`
+（空链 `empty_chain` / 含重复证书的成环链 `chain_cycle`）、
+`trust_root_not_self_signed`（客户端声明的信任根必须是 subject == issuer
+且自签名验证通过的证书）、`unknown_client` / `unknown_endpoint`（关系引用
+了未声明的 id）以及 id 重复类 `invalid_request`。示例请求见
+[`examples/variant_request.json`](examples/variant_request.json)，可用
+`examples/gen_variant_example.py` 重新生成。
 
 ### `POST /plans` — 求最优计划
 

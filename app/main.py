@@ -34,11 +34,16 @@ from .models import (
     ReconcileRequest,
     ReconcileResult,
     RelationshipRef,
+    VariantSelectionErrorDetail,
+    VariantSelectionConflict,
+    VariantSelectionRequest,
+    VariantSelectionResult,
 )
 from .normalize import NormalizeError, normalize_scenario
 from .ocsp import ocsp_precheck
 from .precheck import precheck_identities
 from .reconcile import reconcile
+from .variants import VariantSelectionError, select_variants
 
 
 class _NormalizeErrorResponse(BaseModel):
@@ -47,6 +52,10 @@ class _NormalizeErrorResponse(BaseModel):
 
 class _PrecheckErrorResponse(BaseModel):
     detail: PrecheckErrorDetail
+
+
+class _VariantSelectionErrorResponse(BaseModel):
+    detail: VariantSelectionErrorDetail
 
 app = FastAPI(
     title="TLS Certificate Zero-Downtime Rotation Planner",
@@ -66,8 +75,7 @@ async def _scenario_validation_handler(_request, exc: ScenarioValidationError):
 
 
 @app.exception_handler(NormalizeError)
-async def _normalize_error_handler(request, exc: NormalizeError):
-    # Both /scenarios/normalize and /deployments/precheck raise NormalizeError
+async def _normalize_error_handler(request, exc: NormalizeError):    # Both /scenarios/normalize and /deployments/precheck raise NormalizeError
     # (shared PEM/fingerprint/chain diagnostics); only the pre-check carries
     # identity_issues, so shape the detail per route.
     if request.url.path.startswith("/deployments/precheck"):
@@ -88,6 +96,13 @@ async def _normalize_error_handler(request, exc: NormalizeError):
             chain_issues=exc.chain_issues,
         )
     return JSONResponse(status_code=422, content={"detail": detail.model_dump()})
+
+
+@app.exception_handler(VariantSelectionError)
+async def _variant_selection_error_handler(_request, exc: VariantSelectionError):
+    return JSONResponse(
+        status_code=422, content={"detail": exc.detail().model_dump()}
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -277,6 +292,42 @@ def ocsp_precheck_deployment(req: OcspPrecheckRequest) -> Any:
     (bad fingerprint, unknown leaf, unparseable PEM) return 422.
     """
     return ocsp_precheck(req)
+
+
+@app.post(
+    "/deployments/variants",
+    response_model=VariantSelectionResult,
+    responses={
+        409: {"model": VariantSelectionConflict},
+        422: {"model": _VariantSelectionErrorResponse},
+    },
+    summary="Select the minimum set of certificate variants covering every "
+            "heterogeneous client",
+)
+def select_deployment_variants(req: VariantSelectionRequest) -> Any:
+    """For each endpoint, pick the smallest set of candidate leaf-first
+    fingerprint chains that covers every required client relationship.
+
+    A chain covers a (client, endpoint) relationship only when every hop
+    cryptographically verifies (reusing the normalizer's PEM dedup and
+    signature verification), it terminates at one of the client's trust
+    roots, the leaf public key type is one the client accepts, and every
+    certificate except the trust root is signed with an accepted signature
+    algorithm OID.
+
+    The minimum set cover per endpoint is solved **exactly** by exhaustive
+    subset search (there are at most 12 candidates per endpoint); a
+    per-client greedy is never substituted for the global optimum. Ties are
+    broken by sorting each set's complete fingerprint chains and taking the
+    lexicographically smallest set, and each relationship is mapped to the
+    first compatible variant in that order. If any relationship is
+    uncoverable, 409 lists, stably by client and endpoint, every reason each
+    candidate chain fails for.
+    """
+    result = select_variants(req)
+    if isinstance(result, VariantSelectionConflict):
+        return JSONResponse(status_code=409, content=result.model_dump())
+    return result
 
 
 @app.post(
