@@ -1,0 +1,106 @@
+{
+  "pem_certificates": [
+    "-----BEGIN CERTIFICATE-----\nMIIBajCCAQ+gAwIBAgIUOOF3FWd7+J/+XqDXJDPoWHjUpykwCgYIKoZIzj0EAwIw\nITEfMB0GA1UEAwwWTW9kZXJuIEludGVybWVkaWF0ZSBDQTAeFw0yNDAxMDEwMDAw\nMDBaFw0zNTAxMDEwMDAwMDBaMBoxGDAWBgNVBAMMD2FwaS5leGFtcGxlLmNvbTBZ\nMBMGByqGSM49AgEGCCqGSM49AwEHA0IABHfjKmz6YOrQMfmIFjwKVLl56O6hOCiv\n88Fm85BhuKzZcTCNHUTgWCa+v3dQMmsSX/ftHAD8kMshkgWwnZrUjgCjLDAqMAwG\nA1UdEwEB/wQCMAAwGgYDVR0RBBMwEYIPYXBpLmV4YW1wbGUuY29tMAoGCCqGSM49\nBAMCA0kAMEYCIQDKsSLZvAgtebFTPQQ4kpWckDSJiLm4yBOe+r90TUcC+QIhAMSU\nGhO0dYwb6vCuSSLvtbgXa1RpiLllWTWnTr+HgeWH\n-----END CERTIFICATE-----\n",
+    "-----BEGIN CERTIFICATE-----\nMIIC7TCCAdWgAwIBAgIUNqZbbYjexdDvLWf7xLcbyccDIf0wDQYJKoZIhvcNAQEL\nBQAwGTEXMBUGA1UEAwwOTGVnYWN5IFJvb3QgQ0EwHhcNMjQwMTAxMDAwMDAwWhcN\nMzUwMTAxMDAwMDAwWjAaMRgwFgYDVQQDDA9hcGkuZXhhbXBsZS5jb20wggEiMA0G\nCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDON70cYx+mPVsvHC9Mh+cOL7j7GhN0\n4t40P1lUq82f/1Hq1SgWFfa1jGGhBpu1mb3nPj0pJDjadSKwZkxDeAzcxoQ1dqxe\n6Mcwqb4fHMy3XAvfzKHfSqRMC6VqAanqeiXHkZNrroYoAFvGLW+PGaMkDp6+IqXH\nc7zmnmi4ec6vo9Ria+SwqdJ42MhbWiyYwr8HPpvo4n2/VPxzzW/rEKjmCEoz2oKK\nkZZh7mAj/3lWttRgOEhBv90v4jSV8O9QtzIz919+gA+RJEodY9L4JB0elvySLPk4\nQYlnXSPrhKiy5h6XxWhJunsonkM4B0t0bSpGM3XuEe7PNjFyXdK4Gkn5AgMBAAGj\nLDAqMAwGA1UdEwEB/wQCMAAwGgYDVR0RBBMwEYIPYXBpLmV4YW1wbGUuY29tMA0G\nCSqGSIb3DQEBCwUAA4IBAQBMisxTi2DVC/0dmw3uMQxUxweTyT7PBy441VpTU6ia\nkHuukfzCl6SZosf7YORExeH2feBVu41THBECVWcYXmr8MDv+0SLkCwetkwOLnGjb\nlQqv9Gsc0NaFAVU9pRF7VZiQ+k7E4uYYawpp4AkvFqmD/6uuhtLnyhPKMhbi4dg7\nJO871tMSP86zn3KZ+XED6AycYuf+Ejy/+oWmdNn0S3Ke7vLzyE12vqeqqUTnYuxz\n8We0aJZ5QBvizcTM5p9rIQhVOG6qsSaSdPKxAkFr+pqlqRMWqjw7U3J3n6O0Gwxa\n+9ib2EfQ/evymxyLs/j4ueEPneDpFpc9HFXVmIDFBQuE\n-----END CERTIFICATE-----\n",
+    "-----BEGIN CERTIFICATE-----\nMIIC0zCCAbugAwIBAgIUHlH8NG/HdF10fcwe4cDT4qktrzowDQYJKoZIhvcNAQEL\nBQAwGTEXMBUGA1UEAwwOTGVnYWN5IFJvb3QgQ0EwHhcNMjQwMTAxMDAwMDAwWhcN\nMzUwMTAxMDAwMDAwWjAZMRcwFQYDVQQDDA5MZWdhY3kgUm9vdCBDQTCCASIwDQYJ\nKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKxIvxXuwylRoD1iv69XPnbd7R7WqPgL\nchofIxWd6mq+OEOzB8hvrKLpQZyACWz8iz+UPUADAr2PRBgdO1D5NvzwRK2i1xLx\n4cft+cu965e/fu4e+msADHmDTBW7bnlz2ygtDP82etLroIfx0jY8RWNGjMyd4C81\nDkYJXwSLjdd8zeXT3KzTngsCjngZgwlBUdfwn0la5Ja2eUB4yfx4GQ0ETnt+tAgv\nX/NevBc8tnD7Cb09JRHfMvJjp/OZUxjeiCFDNdiftGFOPbS6krg7viZOS5XuqPjy\nHTR0WRFsaKY12V+5M3mo7f6sio9QKr677kS3+a9jBHjU6wI43z7MdYMCAwEAAaMT\nMBEwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAcftRWUMhJFZ1\nLtbdqxC+gQrwpr8TxMoxUxkdIhZCMkS7eHk2K2jyovvoL7KtgfM5gTh85sL6JdsW\n88OWr7W5RRRq5osKYw1ftbHmwIsPWPY65NUIMUUI6BRw25M9Ivg1NQjlEZxHv1Ws\nv+so62LZ/gqnkUoobkl68GByO/4ZDvzieuYmysYqghMKjdUUBgwS21Q3oBqgeFvS\nbEjukBeaoJwLOpum0zKbgGXVKxgK74GQyEqnyEuyDxWsPrCFRGZ4f8Vy1BL7AqtC\n32mF4+mZTD12h/LRJne82gfBi6A/6K1Mrh/pJexAU3ipOaQuigFIqUmBU70Ftq+j\nDKrHPfWZxQ==\n-----END CERTIFICATE-----\n",
+    "-----BEGIN CERTIFICATE-----\nMIIBTTCB9aADAgECAhRuitkIN1YAqh799rhwaTEuJ2BRNDAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5Nb2Rlcm4gUm9vdCBDQTAeFw0yNDAxMDEwMDAwMDBaFw0zNTAx\nMDEwMDAwMDBaMCExHzAdBgNVBAMMFk1vZGVybiBJbnRlcm1lZGlhdGUgQ0EwWTAT\nBgcqhkjOPQIBBggqhkjOPQMBBwNCAARB8JH+G+NEiR8mfpPgs4XD50MmsKG6W7aO\n2M5kgffQYnTjTRXRvryFD6B6q7AqQWM1XLm8hDDeMQMGSzL61hDAoxMwETAPBgNV\nHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA0cAMEQCIC/ZZKHoLWEF+Z5eykwANmeX\nWjj8NBg2obW0/sQ5NeweAiBA1V/G6swKPQDgSmU21pSJ8NYqWXvKfOESGHu5+gOu\npQ==\n-----END CERTIFICATE-----\n",
+    "-----BEGIN CERTIFICATE-----\nMIIBRzCB7aADAgECAhRhanJeD9plN0ohCzPDv+MsB8GH2DAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5Nb2Rlcm4gUm9vdCBDQTAeFw0yNDAxMDEwMDAwMDBaFw0zNTAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDk1vZGVybiBSb290IENBMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEWIWUhlhx/4r6eVgfiL36IPjpNpwnDrgxcbavgFpyKBpc\nQH6an97IKTvM9QIjsIDMxKrpoJsgOTvoUkY3hM4QfqMTMBEwDwYDVR0TAQH/BAUw\nAwEB/zAKBggqhkjOPQQDAgNJADBGAiEAiaRNU/nXCrg03H2dAkjpnFsfeSmT6Lfr\nM0xWndREcQICIQCS21fXVzdgGV6cJuWxgIbBoNKk04kTBr7Uq9Notp8MQg==\n-----END CERTIFICATE-----\n",
+    "-----BEGIN CERTIFICATE-----\nMIIBajCCARGgAwIBAgIUPtTinOdQgugTKHVUjNxh6Ns0p+MwCgYIKoZIzj0EAwIw\nITEfMB0GA1UEAwwWTW9kZXJuIEludGVybWVkaWF0ZSBDQTAeFw0yNDAxMDEwMDAw\nMDBaFw0zNTAxMDEwMDAwMDBaMBsxGTAXBgNVBAMMEGdycGMuZXhhbXBsZS5jb20w\nWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAR5HnyglmLMw+CY/StO7aPjrz2qkMg3\nSGg3Ve7UYBB5nyRsfEZ+leZBx0LMfl+dtA0UF0cJ4bMGlIgdCJ4fMIN2oy0wKzAM\nBgNVHRMBAf8EAjAAMBsGA1UdEQQUMBKCEGdycGMuZXhhbXBsZS5jb20wCgYIKoZI\nzj0EAwIDRwAwRAIgKMjKmfcMVEUDr2oCl5mbA5cxH7Ox/J6gyMCxqTS9YDICIDhv\nbvY3l9XCP8s5fwhNObeB2NAX9+qj7GBUWxvaucId\n-----END CERTIFICATE-----\n",
+    "-----BEGIN CERTIFICATE-----\nMIIC7TCCAdWgAwIBAgIUV6H4zBEMHsuhz2GLOOqqvsL6JBowDQYJKoZIhvcNAQEM\nBQAwGTEXMBUGA1UEAwwOTGVnYWN5IFJvb3QgQ0EwHhcNMjQwMTAxMDAwMDAwWhcN\nMzUwMTAxMDAwMDAwWjAaMRgwFgYDVQQDDA9hcGkuZXhhbXBsZS5jb20wggEiMA0G\nCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDVCeot/IpDfRnxjQ7JdFzRcfu4lCZy\nMwB/EoPKmpl340psXrNcrO1TXwD3ha80uKmuolPglnbleC/+Rv7DTvzWcMDfnY8l\nFaiugvJ89ptlFT2nOwbZgXfgB6JLoXzxEJua2hk7dPKhDrpYsujZIUxvrWZNfdNq\n7tKJKMkV77guHsYcujRZdzbdQySffvNUy5xmuLj8fS5k2qJiUkOEkMSTcay3M4QQ\nJF8x1WnQ9b9gqSZ1SDhQ7+4bRZ7TvRhgKz0YrUo/RhYrpw49stwy+cadm3YmbFwa\n2aLup5ZpS9zS6jtDVEYa18pKxYTNRTdCNWRSw3UQMh01l0LjPFffujchAgMBAAGj\nLDAqMAwGA1UdEwEB/wQCMAAwGgYDVR0RBBMwEYIPYXBpLmV4YW1wbGUuY29tMA0G\nCSqGSIb3DQEBDAUAA4IBAQAFE2eGtMh0Hknt8ucniEClK2azOyxDaWR6fcW6PRVD\nPLdc8ahQQesIq/orswm+i8pD14tGO4Hmf8d+jLqSGeDAOpMrH16p8jVn41q9u5Wf\nIfUFnEuR/o0btQX1CDGV5cmdfFOOG+06QY47XItxXjdsmS+BqRG1C5/KjoFP0yFB\nX3gdMwYx9I3A5CieXY+mnadz0yNpmaP33i4EsgyY6yXpCOm+b9/RvhyKflhiAbnt\nD8YyAzoczdfMUpmrSb8DdsHH7fziKN2Py3se5ecE9IsY0iqT4qTk/KAkCA657uB6\nsGdFsgG/nH1hYuUUAbZ/8qpCQr3QkObjwF7wawlc61Qz\n-----END CERTIFICATE-----\n",
+    "-----BEGIN CERTIFICATE-----\nMIIBHjCB0aADAgECAhQwmbF/804A72DbLgpZCIQdvONaBjAFBgMrZXAwFTETMBEG\nA1UEAwwKRWQgUm9vdCBDQTAeFw0yNDAxMDEwMDAwMDBaFw0zNTAxMDEwMDAwMDBa\nMBsxGTAXBgNVBAMMEGdycGMuZXhhbXBsZS5jb20wKjAFBgMrZXADIQB37F4zQxyd\nsiXgVzhUvRN7/uMmmJeXQTHjEV9Vq31m0KMtMCswDAYDVR0TAQH/BAIwADAbBgNV\nHREEFDASghBncnBjLmV4YW1wbGUuY29tMAUGAytlcANBANRqyu56x/DsvlifDhyq\nV3RG3YWtI3LN3qrgl4MeSQerywpZYInj0S+WgCUfERxVZg5SdA4+WkYrTPZxrkfW\npQI=\n-----END CERTIFICATE-----\n",
+    "-----BEGIN CERTIFICATE-----\nMIH+MIGxoAMCAQICFAtavQ0nnxRln6wojTssjNqNgB9VMAUGAytlcDAVMRMwEQYD\nVQQDDApFZCBSb290IENBMB4XDTI0MDEwMTAwMDAwMFoXDTM1MDEwMTAwMDAwMFow\nFTETMBEGA1UEAwwKRWQgUm9vdCBDQTAqMAUGAytlcAMhAKd8yjd+qY3S36IjZ1LH\nTtvHk4TaHkg4O5SQWXT876NboxMwETAPBgNVHRMBAf8EBTADAQH/MAUGAytlcANB\nAHltljCiXBARrBTOeSSjvXG4ypGo3ZE4Tx3Lgl6hDIueZkHRLyu7PNSqL8K+hVck\n+BAXOIWeMrlbaxuTLQ+cIgQ=\n-----END CERTIFICATE-----\n"
+  ],
+  "clients": [
+    {
+      "client_id": "pos-terminal",
+      "trust_roots": [
+        "90c27f70124be26c5a46d98c8a516fdc208a3dbbdce4004df235f2c8d66bdb57"
+      ],
+      "acceptable_leaf_key_types": [
+        "rsa"
+      ],
+      "acceptable_signature_oids": [
+        "1.2.840.113549.1.1.11"
+      ]
+    },
+    {
+      "client_id": "mobile-app",
+      "trust_roots": [
+        "90c27f70124be26c5a46d98c8a516fdc208a3dbbdce4004df235f2c8d66bdb57",
+        "636496ac635b8fc14f82661b099c7e75dd618ab37e8abdc0974da05fc713dce3"
+      ],
+      "acceptable_leaf_key_types": [
+        "rsa",
+        "ec"
+      ],
+      "acceptable_signature_oids": [
+        "1.2.840.113549.1.1.11",
+        "1.2.840.10045.4.3.2"
+      ]
+    },
+    {
+      "client_id": "iot-sensor",
+      "trust_roots": [
+        "636496ac635b8fc14f82661b099c7e75dd618ab37e8abdc0974da05fc713dce3"
+      ],
+      "acceptable_leaf_key_types": [
+        "ec"
+      ],
+      "acceptable_signature_oids": [
+        "1.2.840.10045.4.3.2"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "endpoint_id": "api.example.com",
+      "candidate_chains": [
+        [
+          "b534dfebe9ebf1ac782357531e0b3e00c2b10e86980c3594c91564e48207dba6",
+          "90c27f70124be26c5a46d98c8a516fdc208a3dbbdce4004df235f2c8d66bdb57"
+        ],
+        [
+          "8dc1b3f732d9787c9f89eb1203b3daeb5ae6a64a45b02d659b7e014b7385e7f6",
+          "90c27f70124be26c5a46d98c8a516fdc208a3dbbdce4004df235f2c8d66bdb57"
+        ],
+        [
+          "e453fd8ff8746c42c37631834cd41a4a702cb8087bfc206159b6e4128806ccbb",
+          "2216ecefb262a50d54ed9a9ea41bc2527538bbccff11d543942f6b10741f248a",
+          "636496ac635b8fc14f82661b099c7e75dd618ab37e8abdc0974da05fc713dce3"
+        ]
+      ]
+    },
+    {
+      "endpoint_id": "grpc.example.com",
+      "candidate_chains": [
+        [
+          "52b2ebac5a05eafc059b40a8977bf2242e8caab40c3753f250c86ba576c5aea9",
+          "2216ecefb262a50d54ed9a9ea41bc2527538bbccff11d543942f6b10741f248a",
+          "636496ac635b8fc14f82661b099c7e75dd618ab37e8abdc0974da05fc713dce3"
+        ],
+        [
+          "959a30b6559f94dabf60875ede56bf290214fe5212294f167f6e961be86a39fb",
+          "29959d214e4e3b531ca9a0df365909f6c2afc98f2f08fa3bc6320a44431a6204"
+        ]
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "client_id": "pos-terminal",
+      "endpoint_id": "api.example.com"
+    },
+    {
+      "client_id": "mobile-app",
+      "endpoint_id": "api.example.com"
+    },
+    {
+      "client_id": "iot-sensor",
+      "endpoint_id": "api.example.com"
+    },
+    {
+      "client_id": "iot-sensor",
+      "endpoint_id": "grpc.example.com"
+    }
+  ]
+}

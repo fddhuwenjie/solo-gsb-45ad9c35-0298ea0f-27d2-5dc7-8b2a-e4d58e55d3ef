@@ -11,6 +11,9 @@
 DNS/IP 身份，并沿链累计中间 CA 的名称约束（excluded 优先、permitted 取交集）。
 以及 **OCSP 装订响应离线预检**：不上网、不连响应器，直接校验端点将装订的
 OCSP 响应是否由签发者（或其授权响应证书）签名、状态为 good 且在有效期内。
+另外提供**证书变体选择**：给定 PEM 证书包、每端点最多 12 条候选 leaf-first
+指纹链、异构客户端的信任根与可接受的叶公钥类型/签名算法 OID，按端点求出
+覆盖全部必须连通关系的**变体数最少**部署集合（精确集合覆盖，非贪心）。
 
 ## 一键启动
 
@@ -284,6 +287,126 @@ curl -s http://localhost:8080/deployments/ocsp-precheck \
 可用 `examples/gen_ocsp_precheck_example.py` 重新生成（响应窗口
 2024–2035、`check_time` 固定为 2030-01-01，重新生成后多年内保持
 `eligible: true`）。
+
+### `POST /deployments/variants` — 证书变体最小部署集合选择
+
+同一个 TLS 端点往往要面对一批**异构客户端**：信任根不同、只接受某些叶公钥
+类型（RSA / EC / DSA / Ed25519 / Ed448）、只接受某些证书签名算法 OID。
+本接口为每个端点给出**需要部署的变体（候选指纹链）数最少**的集合，使每条
+必须连通的 client → endpoint 关系都至少被集合中的一条链覆盖。复用与
+`/scenarios/normalize` 相同的 **PEM 解析、DER 指纹去重和密码学签名验证**
+（签发关系只通过验签建立，绝不比较 subject/issuer 名称）。
+
+```bash
+curl -s http://localhost:8080/deployments/variants \
+  -H 'Content-Type: application/json' \
+  --data @examples/variants_request.json
+```
+
+请求字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `pem_certificates` | 与 `/scenarios/normalize` 相同的 PEM 包，包含候选链与信任根引用的全部证书，按 DER 指纹去重 |
+| `clients[]` | 客户端：`client_id`、`trust_roots`（信任根 SHA-256 指纹）、`acceptable_leaf_key_types`（`rsa`/`ec`/`dsa`/`ed25519`/`ed448` 的非空去重列表）、`acceptable_signature_oids`（可接受的点分签名算法 OID 非空去重列表，如 `1.2.840.113549.1.1.11` sha256WithRSAEncryption、`1.2.840.10045.4.3.2` ecdsa-with-SHA256、`1.3.101.112` Ed25519） |
+| `endpoints[].candidate_chains` | 每端点 **最多 12 条**候选链，每条是完整的 leaf-first SHA-256 指纹链（末位为信任根）；链之间不得完全重复 |
+| `relationships[]` | 必须连通的 `{client_id, endpoint_id}` 关系（去重；id 必须在 `clients`/`endpoints` 中存在） |
+
+**覆盖判定**：一条候选链只有在下面四条**同时成立**时才覆盖某条关系：
+
+1. **链逐级验签通过**：每对相邻证书 `(child, issuer)` 都能用后一张证书的
+   公钥验证前一张证书的签名（支持 RSA PKCS#1 v1.5、RSA-PSS、ECDSA、DSA、
+   Ed25519/Ed448）；单证书链（只含信任根本身）没有跳数，按「锚即信任」处理。
+2. **末端受客户端信任**：链的最后一张证书指纹属于该客户端的 `trust_roots`。
+3. **叶公钥类型匹配**：叶证书公钥类型属于该客户端的
+   `acceptable_leaf_key_types`（RSASSA-PSS 公钥归入 `rsa`）。
+4. **非根证书的签名算法全部被接受**：除末端信任根外，**每张**证书的
+   `signatureAlgorithm` OID 都必须在该客户端的 `acceptable_signature_oids`
+   中——信任锚按原样信任，其自身签名算法不参与判定。
+
+四条检查相互独立，一条链可能同时命中多个失败原因。
+
+**全局最优而非逐客户端贪心**：每个端点求解一个精确集合覆盖
+（全集 = 该端点必须服务的客户端，集合 = 各候选链实际兼容的客户端集合）：
+按子集大小递增、再按字典序枚举，第一个覆盖全集的子集即答案；候选链只有
+12 条，枚举有界。存在多个同基数最优解时，把集合内的**完整指纹链排序后
+逐元素做字典序裁决**（先比较叶指纹，叶相同再逐级向上比较）。每条关系
+映射到所选集合（已排序）中**排序最先的兼容变体**。
+
+成功返回 `200`，`results` 按 `endpoint_id` 排序；每个端点给出
+`variant_count`、按字典序排好的 `selected_chains`、附叶公钥类型的
+`variants`，以及按 `client_id` 排序的 `assignments`（每条关系 → 所映射
+变体链）。没有任何关系的端点返回空集合、`variant_count: 0`：
+
+```json
+{
+  "status": "ok",
+  "results": [
+    {
+      "endpoint_id": "api.example.com",
+      "variant_count": 2,
+      "selected_chains": [
+        ["b534dfeb...", "90c27f70..."],
+        ["e453fd8f...", "2216ecef...", "636496ac..."]
+      ],
+      "variants": [
+        {"chain": ["b534dfeb...", "90c27f70..."], "leaf_key_type": "rsa"},
+        {"chain": ["e453fd8f...", "2216ecef...", "636496ac..."],
+         "leaf_key_type": "ec"}
+      ],
+      "assignments": [
+        {"client_id": "iot-sensor",
+         "chain": ["e453fd8f...", "2216ecef...", "636496ac..."]},
+        {"client_id": "mobile-app",
+         "chain": ["b534dfeb...", "90c27f70..."]},
+        {"client_id": "pos-terminal",
+         "chain": ["b534dfeb...", "90c27f70..."]}
+      ]
+    }
+  ]
+}
+```
+
+只要**任一关系**无法被任何候选链覆盖即返回 `409`（不是只报第一条）：
+`uncoverable_relationships` 按 `(client_id, endpoint_id)` 稳定排序，逐条
+列出该端点的**全部候选链**及各自命中的原因（同样按固定优先级排序），
+即 `signature_invalid`（链上有签名验证不过的跳）、`root_untrusted`
+（末端指纹不在该客户端信任根中，附 `untrusted_root_fingerprint`）、
+`leaf_key_type_incompatible`（附检测到的 `leaf_key_type`）、
+`signature_algorithm_incompatible`（附该链上不被接受的去重 OID 列表
+`unacceptable_signature_oids`）：
+
+```json
+{
+  "status": "infeasible",
+  "reason": "relationship_uncoverable",
+  "message": "1 client->endpoint relationship(s) cannot be covered ...",
+  "uncoverable_relationships": [
+    {
+      "client_id": "iot-sensor",
+      "endpoint_id": "api.example.com",
+      "candidate_failures": [
+        {
+          "chain": ["b534dfeb...", "90c27f70..."],
+          "reasons": ["root_untrusted", "leaf_key_type_incompatible",
+                      "signature_algorithm_incompatible"],
+          "leaf_key_type": "rsa",
+          "untrusted_root_fingerprint": "90c27f70...",
+          "unacceptable_signature_oids": ["1.2.840.113549.1.1.11"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+请求级错误返回 `422`，结构与归一化接口一致：`invalid_pem`（附元素下标）、
+`invalid_fingerprint`（非 64 位十六进制，附引用位置）、
+`unknown_fingerprint`（指纹不在 PEM 包内）；此外 pydantic 校验还会拒绝
+候选链超限/重复/为空、客户端或端点 id 重复、关系重复或引用未知 id、
+非法 OID 或未知叶公钥类型等。示例见
+[`examples/variants_request.json`](examples/variants_request.json)，可用
+`examples/gen_variants_example.py` 重新生成。
 
 ### `POST /plans` — 求最优计划
 

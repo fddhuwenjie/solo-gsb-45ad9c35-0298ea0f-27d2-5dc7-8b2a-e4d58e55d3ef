@@ -34,11 +34,15 @@ from .models import (
     ReconcileRequest,
     ReconcileResult,
     RelationshipRef,
+    VariantSelectionConflict,
+    VariantSelectionRequest,
+    VariantSelectionResult,
 )
 from .normalize import NormalizeError, normalize_scenario
 from .ocsp import ocsp_precheck
 from .precheck import precheck_identities
 from .reconcile import reconcile
+from .variants import select_variants
 
 
 class _NormalizeErrorResponse(BaseModel):
@@ -277,6 +281,42 @@ def ocsp_precheck_deployment(req: OcspPrecheckRequest) -> Any:
     (bad fingerprint, unknown leaf, unparseable PEM) return 422.
     """
     return ocsp_precheck(req)
+
+
+@app.post(
+    "/deployments/variants",
+    response_model=VariantSelectionResult,
+    responses={
+        409: {"model": VariantSelectionConflict},
+        422: {"model": _NormalizeErrorResponse},
+    },
+    summary="Select the minimum certificate-variant set per endpoint",
+)
+def select_deployment_variants(req: VariantSelectionRequest) -> Any:
+    """Choose, for every endpoint, the fewest certificate variants that must
+    be deployed so that every required heterogeneous client -> endpoint
+    relationship is covered.
+
+    A candidate leaf-first fingerprint chain covers a relationship only when
+    (1) every hop verifies cryptographically (the same signature
+    verification as /scenarios/normalize, never DN matching), (2) its
+    terminal fingerprint is one of the client's trust roots, (3) the leaf
+    public-key type is among the client's accepted types and (4) every
+    non-root certificate's signature-algorithm OID is accepted.
+
+    The per-endpoint optimum is an exact set cover (subsets tried by
+    increasing size); a per-client greedy heuristic is not used. Ties are
+    broken by lexicographically sorting the selected set's full fingerprint
+    chains, and every relationship is mapped to the first compatible variant
+    in that order. Any uncoverable relationship yields 409 with stably
+    ordered (client, endpoint) diagnostics listing, for every candidate
+    chain, which of signature_invalid / root_untrusted /
+    leaf_key_type_incompatible / signature_algorithm_incompatible apply.
+    """
+    result = select_variants(req)
+    if isinstance(result, VariantSelectionConflict):
+        return JSONResponse(status_code=409, content=result.model_dump())
+    return result
 
 
 @app.post(

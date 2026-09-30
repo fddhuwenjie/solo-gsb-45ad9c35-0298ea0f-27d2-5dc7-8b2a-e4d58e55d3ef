@@ -1,6 +1,7 @@
 """Pydantic models for the certificate rotation planning API."""
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import Annotated, Literal, Optional, Union
 
@@ -582,6 +583,269 @@ class OcspPrecheckResult(BaseModel):
     revocation_reason: Optional[str] = Field(
         ..., description="CRL reason flag name (e.g. key_compromise) when "
                     "revoked and present; null otherwise.",
+    )
+
+
+# ---------------------------------------------------------------------------
+# /deployments/variants: minimum certificate-variant set per endpoint
+# ---------------------------------------------------------------------------
+
+MAX_VARIANT_CHAINS = 12
+
+# A leaf public-key type the variant selector can express. Detection uses the
+# concrete public-key class of the leaf certificate (the RSASSA-PSS key class
+# is itself an RSAPublicKey subclass and is reported as ``rsa``).
+LeafKeyType = Literal["rsa", "ec", "dsa", "ed25519", "ed448"]
+
+# Dotted OID form (e.g. 1.2.840.113549.1.1.11 for sha256WithRSAEncryption).
+_OID_RE = re.compile(r"^[0-2](?:\.[0-9]+)+$")
+
+
+class VariantClient(BaseModel):
+    """A heterogeneous client: its trust roots and what it can accept."""
+
+    client_id: str = Field(..., min_length=1)
+    trust_roots: list[str] = Field(
+        ...,
+        min_length=1,
+        description="SHA-256 fingerprints (hex, case-insensitive) of the "
+                    "self-signed roots this client trusts. A candidate chain "
+                    "covers a relationship to this client only when its final "
+                    "certificate is one of these fingerprints.",
+    )
+    acceptable_leaf_key_types: list[LeafKeyType] = Field(
+        ...,
+        min_length=1,
+        description="Leaf public-key types the client accepts, one of "
+                    "rsa / ec / dsa / ed25519 / ed448.",
+    )
+    acceptable_signature_oids: list[str] = Field(
+        ...,
+        min_length=1,
+        description="Dotted signature-algorithm OIDs the client accepts, "
+                    "e.g. 1.2.840.113549.1.1.11 (sha256WithRSAEncryption), "
+                    "1.2.840.10045.4.3.2 (ecdsa-with-SHA256), "
+                    "1.3.101.112 (Ed25519). Applied to every certificate of "
+                    "a chain except the terminating trust root.",
+    )
+
+    @field_validator("trust_roots")
+    @classmethod
+    def _normalize_roots(cls, v: list[str]) -> list[str]:
+        normalized = [r.strip().lower() for r in v]
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("trust_roots must not contain duplicates")
+        return normalized
+
+    @field_validator("acceptable_leaf_key_types")
+    @classmethod
+    def _dedupe_key_types(cls, v: list[LeafKeyType]) -> list[LeafKeyType]:
+        if len(set(v)) != len(v):
+            raise ValueError(
+                "acceptable_leaf_key_types must not contain duplicates"
+            )
+        return v
+
+    @field_validator("acceptable_signature_oids")
+    @classmethod
+    def _validate_oids(cls, v: list[str]) -> list[str]:
+        bad = [o for o in v if not _OID_RE.match(o.strip())]
+        if bad:
+            raise ValueError(
+                f"acceptable_signature_oids entries must be dotted OIDs; "
+                f"invalid: {', '.join(bad)}"
+            )
+        oids = [o.strip() for o in v]
+        if len(set(oids)) != len(oids):
+            raise ValueError(
+                "acceptable_signature_oids must not contain duplicates"
+            )
+        return oids
+
+
+class VariantEndpoint(BaseModel):
+    """An endpoint and up to 12 candidate leaf-first fingerprint chains."""
+
+    endpoint_id: str = Field(..., min_length=1)
+    candidate_chains: list[list[str]] = Field(
+        ...,
+        min_length=1,
+        max_length=MAX_VARIANT_CHAINS,
+        description="Candidate deployment variants: each is a complete "
+                    "leaf-first chain of SHA-256 fingerprints ending at a "
+                    "trust root. At most 12; exact duplicate chains are "
+                    "rejected as ambiguous input.",
+    )
+
+    @field_validator("candidate_chains")
+    @classmethod
+    def _nonempty_unique_chains(cls, v: list[list[str]]) -> list[list[str]]:
+        normalized = [[fp.strip().lower() for fp in chain] for chain in v]
+        for chain in normalized:
+            if not chain:
+                raise ValueError("candidate chains must be non-empty")
+        if len({tuple(chain) for chain in normalized}) != len(normalized):
+            raise ValueError("candidate_chains must not contain duplicates")
+        return normalized
+
+
+class VariantRelationship(BaseModel):
+    """A client -> endpoint relationship that must stay connected."""
+
+    client_id: str = Field(..., min_length=1)
+    endpoint_id: str = Field(..., min_length=1)
+
+
+class VariantSelectionRequest(BaseModel):
+    pem_certificates: list[str] = Field(
+        ...,
+        min_length=1,
+        description="Unordered PEM bag holding every certificate referenced "
+                    "by a candidate chain or a client trust root; same "
+                    "parsing/deduplication rules as /scenarios/normalize.",
+    )
+    clients: list[VariantClient] = Field(..., min_length=1)
+    endpoints: list[VariantEndpoint] = Field(..., min_length=1)
+    relationships: list[VariantRelationship] = Field(..., min_length=1)
+
+    @model_validator(mode="after")
+    def _unique_ids_and_relationships(self) -> "VariantSelectionRequest":
+        client_ids = [c.client_id for c in self.clients]
+        if len(set(client_ids)) != len(client_ids):
+            raise ValueError("clients: client_id values must be unique")
+        endpoint_ids = [e.endpoint_id for e in self.endpoints]
+        if len(set(endpoint_ids)) != len(endpoint_ids):
+            raise ValueError("endpoints: endpoint_id values must be unique")
+        pairs = [(r.client_id, r.endpoint_id) for r in self.relationships]
+        if len(set(pairs)) != len(pairs):
+            raise ValueError(
+                "relationships: each (client_id, endpoint_id) pair must be "
+                "unique"
+            )
+        unknown_clients = sorted({c for c, _ in pairs} - set(client_ids))
+        unknown_endpoints = sorted({e for _, e in pairs} - set(endpoint_ids))
+        if unknown_clients:
+            raise ValueError(
+                f"relationships reference unknown client_id values: "
+                f"{', '.join(unknown_clients)}"
+            )
+        if unknown_endpoints:
+            raise ValueError(
+                f"relationships reference unknown endpoint_id values: "
+                f"{', '.join(unknown_endpoints)}"
+            )
+        return self
+
+
+class SelectedVariant(BaseModel):
+    chain: list[str] = Field(
+        ...,
+        description="A selected deployment variant (complete leaf-first "
+                    "fingerprint chain ending at a trust root).",
+    )
+    leaf_key_type: Optional[LeafKeyType] = Field(
+        ...,
+        description="Concrete public-key type of the leaf certificate; null "
+                    "for a key type the service cannot classify.",
+    )
+
+
+class VariantAssignment(BaseModel):
+    client_id: str
+    chain: list[str] = Field(
+        ...,
+        description="The selected variant that covers this relationship: "
+                    "the first chain in the endpoint's lexicographically "
+                    "sorted selected set that is compatible with the client.",
+    )
+
+
+class VariantEndpointResult(BaseModel):
+    endpoint_id: str
+    variant_count: int = Field(
+        ...,
+        description="Minimum number of deployment variants needed for this "
+                    "endpoint (exact set-cover optimum, never a per-client "
+                    "greedy result).",
+    )
+    selected_chains: list[list[str]] = Field(
+        ...,
+        description="Selected variants, sorted lexicographically as full "
+                    "fingerprint chains (this order is also the tie-break "
+                    "order and the assignment order).",
+    )
+    variants: list[SelectedVariant] = Field(
+        ...,
+        description="Selected variants in the same order as selected_chains.",
+    )
+    assignments: list[VariantAssignment] = Field(
+        ...,
+        description="One entry per required relationship of this endpoint, "
+                    "sorted by client_id; each maps to the first compatible "
+                    "variant in the sorted selected set.",
+    )
+
+
+class VariantSelectionResult(BaseModel):
+    status: Literal["ok"] = "ok"
+    results: list[VariantEndpointResult] = Field(
+        ...,
+        description="Per-endpoint minimum variant sets, sorted by endpoint_id.",
+    )
+
+
+class VariantChainFailure(BaseModel):
+    """Why one candidate variant cannot cover a given relationship.
+
+    Every applicable reason is reported (the four checks are independent),
+    sorted in precedence order signature_invalid -> root_untrusted ->
+    leaf_key_type_incompatible -> signature_algorithm_incompatible.
+    """
+
+    chain: list[str]
+    reasons: list[Literal[
+        "signature_invalid",
+        "root_untrusted",
+        "leaf_key_type_incompatible",
+        "signature_algorithm_incompatible",
+    ]]
+    leaf_key_type: Optional[LeafKeyType] = Field(
+        ...,
+        description="Leaf public-key type detected on this chain, or null.",
+    )
+    untrusted_root_fingerprint: Optional[str] = Field(
+        ...,
+        description="The chain's terminal fingerprint when it is not among "
+                    "the client's trust roots, else null.",
+    )
+    unacceptable_signature_oids: list[str] = Field(
+        ...,
+        description="Signature-algorithm OIDs used by non-root certificates "
+                    "of this chain that the client does not accept (sorted).",
+    )
+
+
+class VariantUncoveredRelationship(BaseModel):
+    client_id: str
+    endpoint_id: str
+    candidate_failures: list[VariantChainFailure] = Field(
+        ...,
+        description="All candidate variants of the endpoint with the reasons "
+                    "they cannot cover this relationship; chains sorted "
+                    "lexicographically.",
+    )
+
+
+class VariantSelectionConflict(BaseModel):
+    status: Literal["infeasible"] = "infeasible"
+    reason: Literal["relationship_uncoverable"] = "relationship_uncoverable"
+    message: str
+    uncoverable_relationships: list[VariantUncoveredRelationship] = Field(
+        ...,
+        description="Relationships no candidate variant can cover, stably "
+                    "sorted by (client_id, endpoint_id); every endpoint's "
+                    "uncoverable relationships are reported together, not "
+                    "only the first one.",
     )
 
 
